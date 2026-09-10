@@ -22,6 +22,18 @@ npm run dev
 
 Then open the local Vite URL shown in the terminal.
 
+## Demo Credentials
+
+### Veterinary Officer
+- Email: `vet@pashushield.com`
+- Password: `12345678`
+
+### Farmer / Field Worker
+- Email: `farmer@pashushield.com`
+- Password: `12345678`
+
+These dedicated demo accounts are provided for prototype evaluation.
+
 ## Prototype scope
 
 - Farmer reporting
