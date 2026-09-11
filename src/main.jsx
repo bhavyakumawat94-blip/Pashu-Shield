@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";import { createRoot } from "react-dom/client";
+import React, { useMemo, useState, useEffect, useRef } from "react";import { createRoot } from "react-dom/client";
 import {
   Activity, AlertTriangle, Bell, CheckCircle2, ClipboardList, CloudOff,
   FileText, HeartPulse, Home, Languages, MapPin, Menu, PawPrint,
@@ -315,7 +315,14 @@ function Cases({cases,setSelectedCase,setPage}) {
 
 function CaseDetail({c}) {
   if (!c) return null;
-  return <div className="panel detail"><div className="panel-head"><div><div className="eyebrow">SELECTED CASE</div><h2>{c.id} • {c.village}</h2></div><RiskBadge status={c.status}/></div>
+  return <div className="panel detail">,{c.voiceUrl && (
+  <div className="advice">
+    <div>
+      <strong>🎙️ Farmer Voice Report</strong>
+      <audio controls src={c.voiceUrl} />
+    </div>
+  </div>
+)}<div className="panel-head"><div><div className="eyebrow">SELECTED CASE</div><h2>{c.id} • {c.village}</h2></div><RiskBadge status={c.status}/></div>
     <div className="detail-grid"><div><span>Risk score</span><strong className="big-score">{c.score}%</strong></div><div><span>Species</span><strong>{c.species}</strong></div><div><span>Affected</span><strong>{c.affected}</strong></div><div><span>Mortality</span><strong>{c.mortality}</strong></div></div>
     <div className="advice"><Stethoscope size={19}/><div><strong>Recommended action</strong><p>Prioritize veterinary review and consider sample collection. AI-assisted triage is decision support; veterinary confirmation remains final.</p></div></div>
   </div>
@@ -362,19 +369,294 @@ function FarmerHome({setPage}) {
     <div className="stats"><Stat icon={PawPrint} label="Animals in herd" value="18" hint="3 species"/><Stat icon={Syringe} label="Vaccinations due" value="3" hint="Next 30 days"/><Stat icon={Bell} label="New advisories" value="2" hint="Review today"/></div>
   </section>
 }
+function VoiceReporting({ onText, onAudio }) {
+  const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [language, setLanguage] = useState("en-IN");
+  const [text, setText] = useState("");
+  const [audioUrl, setAudioUrl] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
+  const startRecording = async () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      audioChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+
+        setAudioUrl(URL.createObjectURL(audioBlob));
+        onAudio(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setRecording(true);
+
+      const recognition = new SpeechRecognition();
+
+      recognition.lang = language;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let finalText = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          finalText += event.results[i][0].transcript;
+        }
+
+        setText((previous) => {
+          const newText = previous
+            ? `${previous} ${finalText}`
+            : finalText;
+
+          onText(newText);
+          return newText;
+        });
+      };
+
+      recognition.onerror = () => {
+        setListening(false);
+      };
+
+      recognition.onend = () => {
+        setListening(false);
+      };
+
+      recognition.start();
+
+      mediaRecorderRef.current.recognition = recognition;
+    } catch (error) {
+      alert("Please allow microphone access to use voice reporting.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.recognition) {
+        mediaRecorderRef.current.recognition.stop();
+      }
+
+      if (mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    }
+
+    setListening(false);
+    setRecording(false);
+  };
+
+  const clearRecording = () => {
+    setText("");
+    setAudioUrl(null);
+    onText("");
+  };
+
+  return (
+    <div className="voice">
+      <span className="mic">🎙️</span>
+
+      <div style={{ width: "100%" }}>
+        <strong>Voice Reporting</strong>
+
+        <p>
+          Record livestock symptoms using English, Hindi or Marathi.
+        </p>
+
+        <div style={{ marginBottom: "12px" }}>
+          <label>
+            <strong>Language: </strong>
+          </label>
+
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            disabled={recording}
+          >
+            <option value="en-IN">English</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="mr-IN">Marathi</option>
+          </select>
+        </div>
+
+        {!recording ? (
+          <button
+            type="button"
+            className="secondary"
+            onClick={startRecording}
+          >
+            🎙️ Start Recording
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="secondary"
+            onClick={stopRecording}
+          >
+            ⏹️ Stop Recording
+          </button>
+        )}
+
+        {listening && (
+          <p>
+            🔴 <strong>Listening...</strong> Speak now.
+          </p>
+        )}
+
+        <div style={{ marginTop: "15px" }}>
+          <label>
+            <strong>Description</strong>
+          </label>
+
+          <textarea
+            rows="4"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              onText(e.target.value);
+            }}
+            placeholder="Describe the animal's symptoms here, or use voice reporting..."
+            style={{
+              width: "100%",
+              marginTop: "8px",
+              padding: "10px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              resize: "vertical",
+            }}
+          />
+        </div>
+
+        {audioUrl && (
+          <div style={{ marginTop: "12px" }}>
+            <strong>🎧 Audio recorded</strong>
+            <br />
+            <audio controls src={audioUrl} style={{ marginTop: "8px" }} />
+          </div>
+        )}
+
+        {(text || audioUrl) && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={clearRecording}
+            style={{ marginTop: "10px" }}
+          >
+            Clear Voice Report
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 function ReportForm({onSubmit}) {
   const [form,setForm]=useState({species:"Cattle",village:"Village A",affected:5,mortality:1,fever:true,nasal:true,cough:false,appetite:true,lethargy:false});
   const [result,setResult]=useState(null);
+  const [voiceAudio,setVoiceAudio]=useState(null);
   const update=(k,v)=>setForm({...form,[k]:v});
-  const submit=(e)=>{e.preventDefault();const score=scoreCase(form);const status=score>=61?"High":score>=31?"Medium":"Low";const symptoms=[form.fever&&"Fever",form.nasal&&"Nasal discharge",form.cough&&"Cough",form.appetite&&"Reduced appetite",form.lethargy&&"Lethargy"].filter(Boolean);const c={id:`PS-${1025+Math.floor(Math.random()*100)}`,village:form.village,species:form.species,affected:Number(form.affected),mortality:Number(form.mortality),score,status,symptoms,date:"09 Sep 2026"};setResult(c);};
-  if(result) return <section><div className="page-head"><div><div className="eyebrow">AI-ASSISTED TRIAGE RESULT</div><h1>Report assessed</h1><p>Your report has been converted into a priority case.</p></div></div><div className="result-card"><div className={`result-ring ${result.status.toLowerCase()}`}><strong>{result.score}%</strong><span>Risk score</span></div><div><RiskBadge status={result.status}/><h2>{result.status === "High" ? "Veterinary review recommended" : "Continue monitoring"}</h2><p>{result.symptoms.join(" • ")} • {result.affected} affected • {result.mortality} mortality</p><div className="advice"><Stethoscope size={19}/><div><strong>Next step</strong><p>For prototype demonstration, this case is escalated to the veterinary dashboard. The system supports decision-making and does not replace veterinary diagnosis.</p></div></div><button className="primary" onClick={()=>onSubmit(result)}>Send to veterinary dashboard</button></div></div></section>;
+  const handleVoiceText=(text)=>{
+  const t=text.toLowerCase();
+
+  setForm(prev=>({
+    ...prev,
+    fever:t.includes("fever")||prev.fever,
+    nasal:t.includes("nasal")||t.includes("discharge")||prev.nasal,
+    cough:t.includes("cough")||prev.cough,
+    appetite:t.includes("appetite")||t.includes("eating")||prev.appetite,
+    lethargy:t.includes("lethargy")||t.includes("weak")||prev.lethargy
+  }));
+};
+const submit = async (e) => {
+  e.preventDefault();
+
+  const score = scoreCase(form);
+  const status = score >= 61 ? "High" : score >= 31 ? "Medium" : "Low";
+
+  const symptoms = [
+    form.fever && "Fever",
+    form.nasal && "Nasal discharge",
+    form.cough && "Cough",
+    form.appetite && "Reduced appetite",
+    form.lethargy && "Lethargy"
+  ].filter(Boolean);
+
+  const caseId = `PS-${1025 + Math.floor(Math.random() * 100)}`;
+
+  let voiceUrl = null;
+
+  if (voiceAudio) {
+    const fileName = `${caseId}-${Date.now()}.webm`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("voice report")
+      .upload(fileName, voiceAudio, {
+        contentType: "audio/webm",
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error("Voice upload failed:", uploadError);
+      alert("Report saved, but voice recording could not be uploaded.");
+    } else {
+      const { data } = supabase.storage
+        .from("voice report")
+        .getPublicUrl(fileName);
+
+      voiceUrl = data.publicUrl;
+    }
+  }
+
+  const c = {
+    id: caseId,
+    village: form.village,
+    species: form.species,
+    affected: Number(form.affected),
+    mortality: Number(form.mortality),
+    score,
+    status,
+    symptoms,
+    date: "11 Sep 2026",
+    voiceUrl
+  };
+
+  setResult(c);
+};  if(result) return <section><div className="page-head"><div><div className="eyebrow">AI-ASSISTED TRIAGE RESULT</div><h1>Report assessed</h1><p>Your report has been converted into a priority case.</p></div></div><div className="result-card"><div className={`result-ring ${result.status.toLowerCase()}`}><strong>{result.score}%</strong><span>Risk score</span></div><div><RiskBadge status={result.status}/><h2>{result.status === "High" ? "Veterinary review recommended" : "Continue monitoring"}</h2><p>{result.symptoms.join(" • ")} • {result.affected} affected • {result.mortality} mortality</p><div className="advice"><Stethoscope size={19}/><div><strong>Next step</strong><p>For prototype demonstration, this case is escalated to the veterinary dashboard. The system supports decision-making and does not replace veterinary diagnosis.</p></div></div><button className="primary" onClick={()=>onSubmit(result)}>Send to veterinary dashboard</button></div></div></section>;
   return <section><div className="page-head"><div><div className="eyebrow">SYMPTOM & MORTALITY REPORTING</div><h1>Report Animal Health Issue</h1><p>Enter simple field-level observations. Required fields are marked in the form.</p></div></div>
     <form className="panel form" onSubmit={submit}><div className="form-grid"><label>Species<select value={form.species} onChange={e=>update("species",e.target.value)}><option>Cattle</option><option>Buffalo</option><option>Goat</option><option>Sheep</option><option>Poultry</option></select></label><label>Village / location<input value={form.village} onChange={e=>update("village",e.target.value)}/></label><label>Animals affected<input type="number" min="1" value={form.affected} onChange={e=>update("affected",e.target.value)}/></label><label>Mortality<input type="number" min="0" value={form.mortality} onChange={e=>update("mortality",e.target.value)}/></label></div>
     <h3>Observed symptoms</h3><div className="checks">{[["fever","Fever"],["nasal","Nasal discharge"],["cough","Cough"],["appetite","Reduced appetite"],["lethargy","Lethargy"]].map(([k,l])=><label className="check" key={k}><input type="checkbox" checked={form[k]} onChange={e=>update(k,e.target.checked)}/><span>{l}</span></label>)}</div>
     <div className="upload"><Upload size={20}/><div><strong>Photo evidence (optional)</strong><p>Prototype placeholder for animal/lesion photo upload.</p></div><button type="button" className="secondary">Choose photo</button></div>
-    <div className="voice"><span className="mic">🎙️</span><div><strong>Voice reporting</strong><p>Web Speech API can be connected here for Marathi/Hindi/English symptom entry.</p></div></div>
-    <div className="form-footer"><div className="offline"><Wifi size={15}/> Can be saved offline</div><button className="primary" type="submit"><Activity size={17}/> Assess risk</button></div></form>
+<VoiceReporting
+  onText={handleVoiceText}
+  onAudio={setVoiceAudio}
+/>    <div className="form-footer"><div className="offline"><Wifi size={15}/> Can be saved offline</div><button className="primary" type="submit"><Activity size={17}/> Assess risk</button></div></form>
   </section>
 }
 
