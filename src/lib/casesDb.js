@@ -13,6 +13,7 @@ function toAppCase(row) {
     status: row.status,
     symptoms: row.symptoms || [],
     date: row.reported_date,
+    voiceUrl: row.voice_url || null,
   };
 }
 
@@ -27,6 +28,7 @@ function toDbCase(c) {
     status: c.status,
     symptoms: c.symptoms || [],
     reported_date: c.date || new Date().toISOString().slice(0, 10),
+    voice_url: c.voiceUrl || null,
   };
 }
 

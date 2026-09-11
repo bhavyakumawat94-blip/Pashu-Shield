@@ -161,40 +161,333 @@ const handleLogout = async () => {
   };
 
   if (!session) {
+  const fillDemo = (demoEmail) => {
+    setEmail(demoEmail);
+    setPassword("12345678");
+    setLoginError("");
+  };
+
   return (
     <div className="login-page">
-      <div className="login-card">
-        <div className="brand-mark">
-          <ShieldCheck size={32} />
+
+      {/* HEADER */}
+      <header className="landing-header">
+        <div className="landing-brand">
+          <div className="landing-logo">
+            <ShieldCheck size={30} />
+          </div>
+
+          <div>
+            <strong>PASHU SHIELD</strong>
+            <span>Livestock Health Surveillance System</span>
+          </div>
         </div>
 
-        <h1>PASHU SHIELD</h1>
-        <p>Livestock Health Surveillance System</p>
+        <div className="landing-status">
+          <span className="status-dot"></span>
+          Early Warning • Veterinary Response
+        </div>
+      </header>
 
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+      {/* HERO + LOGIN */}
+      <div className="landing-grid">
 
-          {loginError && (
-            <div className="login-error">{loginError}</div>
-          )}
+        {/* LEFT */}
+        <section className="landing-hero">
 
-          <button type="submit">Sign In</button>
-        </form>
+          <div className="hero-badge">
+            <Activity size={16} />
+            SMART LIVESTOCK SURVEILLANCE
+          </div>
+
+          <h1>
+            Detect Early.
+            <br />
+            <span>Protect Faster.</span>
+          </h1>
+
+          <p className="hero-text">
+            PASHU SHIELD connects farmer observations with risk
+            assessment, cluster detection and veterinary response
+            to enable actionable livestock health early warnings.
+          </p>
+
+          <div className="hero-features">
+
+            <div>
+              <div className="hero-feature-icon">
+                <HeartPulse size={21} />
+              </div>
+              <strong>Early Detection</strong>
+              <span>Identify health risks sooner</span>
+            </div>
+
+            <div>
+              <div className="hero-feature-icon">
+                <TrendingUp size={21} />
+              </div>
+              <strong>Risk Intelligence</strong>
+              <span>Prioritize cases intelligently</span>
+            </div>
+
+            <div>
+              <div className="hero-feature-icon">
+                <Stethoscope size={21} />
+              </div>
+              <strong>Vet Response</strong>
+              <span>Connect field reports to action</span>
+            </div>
+
+          </div>
+
+
+          {/* VISUAL */}
+          <div className="livestock-card">
+
+            <div className="livestock-glow"></div>
+
+            <div className="livestock-content">
+
+              <div className="animal-icons">
+                <span>🐄</span>
+                <span>🐃</span>
+                <span>🐐</span>
+              </div>
+
+              <div>
+                <strong>Healthy Livestock</strong>
+                <p>
+                  Stronger herds • Safer communities
+                </p>
+              </div>
+
+            </div>
+
+            <div className="surveillance-ring">
+              <ShieldCheck size={34} />
+              <span>MONITOR</span>
+            </div>
+
+            <div className="grass">🌿 🌾 🌿 🌾 🌿</div>
+
+          </div>
+
+
+          <div className="hero-bottom">
+            <span>DETECT</span>
+            <b>→</b>
+            <span>ASSESS</span>
+            <b>→</b>
+            <span>CONNECT</span>
+            <b>→</b>
+            <span>RESPOND</span>
+          </div>
+
+        </section>
+
+
+        {/* LOGIN */}
+        <section className="landing-login">
+
+          <div className="login-top">
+
+            <div className="login-shield">
+              <ShieldCheck size={27} />
+            </div>
+
+            <span className="login-welcome">
+              Welcome back
+            </span>
+
+            <h2>Sign in to PASHU SHIELD</h2>
+
+            <p>
+              Access your livestock health dashboard
+            </p>
+
+          </div>
+
+
+          <form onSubmit={handleLogin}>
+
+            <label className="login-label">
+              Email address
+            </label>
+
+            <div className="landing-input">
+              <UserRound size={18} />
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+
+            <label className="login-label">
+              Password
+            </label>
+
+            <div className="landing-input">
+              <ShieldCheck size={18} />
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+
+            {loginError && (
+              <div className="login-error">
+                <AlertTriangle size={16} />
+                {loginError}
+              </div>
+            )}
+
+
+            <button
+              type="submit"
+              className="landing-signin"
+            >
+              Sign In
+              <span>→</span>
+            </button>
+
+          </form>
+
+
+          <div className="login-secure">
+            <CheckCircle2 size={15} />
+            Secure role-based access
+          </div>
+
+        </section>
+
       </div>
+
+
+      {/* EVALUATOR CREDENTIALS */}
+      <section className="evaluator-section">
+
+        <div className="evaluator-heading">
+
+          <div className="evaluator-icon">
+            <ClipboardList size={23} />
+          </div>
+
+          <div>
+            <h3>
+              Demo Credentials
+              <span>For Evaluators</span>
+            </h3>
+
+            <p>
+              Use these accounts to explore both sides of the
+              PASHU SHIELD workflow.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div className="credential-grid">
+
+          {/* FARMER */}
+          <div className="credential-box farmer-credential">
+
+            <div className="credential-role-icon">
+              <PawPrint size={25} />
+            </div>
+
+            <div className="credential-details">
+
+              <div className="credential-title">
+                <div>
+                  <strong>Farmer / Field Worker</strong>
+                  <span>Report livestock health issues</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    fillDemo("farmer@pashushield.com")
+                  }
+                >
+                  Use Account
+                </button>
+              </div>
+
+              <div className="credential-line">
+                <span>Email</span>
+                <strong>farmer@pashushield.com</strong>
+              </div>
+
+              <div className="credential-line">
+                <span>Password</span>
+                <strong>12345678</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* VET */}
+          <div className="credential-box vet-credential">
+
+            <div className="credential-role-icon">
+              <Stethoscope size={25} />
+            </div>
+
+            <div className="credential-details">
+
+              <div className="credential-title">
+                <div>
+                  <strong>Veterinary Officer</strong>
+                  <span>Monitor, triage & respond</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    fillDemo("vet@pashushield.com")
+                  }
+                >
+                  Use Account
+                </button>
+              </div>
+
+              <div className="credential-line">
+                <span>Email</span>
+                <strong>vet@pashushield.com</strong>
+              </div>
+
+              <div className="credential-line">
+                <span>Password</span>
+                <strong>12345678</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="evaluator-footer">
+          <ShieldCheck size={16} />
+          <span>
+            DETECT EARLY • CONNECT CASES • PREDICT RISK • RESPOND FASTER
+          </span>
+        </div>
+
+      </section>
+
     </div>
   );
 }
@@ -301,16 +594,108 @@ function CaseRow({c,onClick}) {
   </button>
 }
 
-function Cases({cases,setSelectedCase,setPage}) {
-  const [query,setQuery] = useState("");
-  const filtered = cases.filter(c => `${c.id} ${c.village} ${c.species}`.toLowerCase().includes(query.toLowerCase()));
-  return <section>
-    <div className="page-head"><div><div className="eyebrow">CASE MANAGEMENT</div><h1>Priority Cases</h1><p>Review reports, triage risk and escalate cases.</p></div></div>
-    <div className="searchbar"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search case, village or species..."/></div>
-    <div className="panel table-panel"><table><thead><tr><th>Case</th><th>Location</th><th>Animals</th><th>Symptoms</th><th>Risk</th><th></th></tr></thead>
-    <tbody>{filtered.map(c=><tr key={c.id}><td><strong>{c.id}</strong><small>{c.date}</small></td><td>{c.village}</td><td>{c.affected} affected<br/>{c.mortality} mortality</td><td>{c.symptoms.join(", ")}</td><td><RiskBadge status={c.status}/><strong className="score">{c.score}%</strong></td><td><button className="secondary small" onClick={()=>{setSelectedCase(c);setPage("cases")}}>Review</button></td></tr>)}</tbody></table></div>
-    <CaseDetail c={cases[0]}/>
-  </section>
+function Cases({ cases, setPage }) {
+  const [selectedCaseId, setSelectedCaseId] = useState(
+    cases[0]?.id || null
+  );
+
+  const [query, setQuery] = useState("");
+
+  const filtered = cases.filter((c) =>
+    `${c.id} ${c.village} ${c.species}`
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  );
+
+  const selectedCase =
+    cases.find((c) => c.id === selectedCaseId) || filtered[0] || cases[0] || null;
+
+  return (
+    <section>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CASE MANAGEMENT</div>
+          <h1>Priority Cases</h1>
+          <p>Review reports, triage risk and escalate cases.</p>
+        </div>
+      </div>
+
+      <div className="searchbar">
+        <Search size={18} />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search case, village or species..."
+        />
+      </div>
+
+      <div className="panel table-panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Location</th>
+              <th>Animals</th>
+              <th>Symptoms</th>
+              <th>Risk</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtered.map((c) => (
+              <tr
+                key={c.id}
+                onClick={() => setSelectedCaseId(c.id)}
+                style={{
+                  cursor: "pointer",
+                  background:
+                    selectedCaseId === c.id
+                      ? "rgba(34, 197, 94, 0.08)"
+                      : undefined,
+                }}
+              >
+                <td>
+                  <strong>{c.id}</strong>
+                  <small>{c.date}</small>
+                </td>
+
+                <td>{c.village}</td>
+
+                <td>
+                  {c.affected} affected
+                  <br />
+                  {c.mortality} mortality
+                </td>
+
+                <td>{c.symptoms.join(", ")}</td>
+
+                <td>
+                  <RiskBadge status={c.status} />
+                  <strong className="score">{c.score}%</strong>
+                </td>
+
+                <td>
+                  <button
+                    className="secondary small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCaseId(c.id);
+                      setPage("cases");
+                    }}
+                  >
+                    Review
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {selectedCase && <CaseDetail c={selectedCase} />}
+    </section>
+  );
 }
 
 function CaseDetail({c}) {
