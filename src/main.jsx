@@ -349,12 +349,90 @@ function Forecast() {
 }
 
 function Lab({cases,notify}) {
-  const [requested,setRequested]=useState({});
-  return <section><div className="page-head"><div><div className="eyebrow">CASE ESCALATION</div><h1>Lab Referral</h1><p>Coordinate sample collection and laboratory testing.</p></div></div>
-    <div className="panel table-panel"><table><thead><tr><th>Case</th><th>Risk</th><th>Suggested sample</th><th>Status</th><th></th></tr></thead><tbody>
-      {cases.filter(c=>c.status==="High").map(c=><tr key={c.id}><td><strong>{c.id}</strong><small>{c.village} • {c.species}</small></td><td><RiskBadge status={c.status}/></td><td>Clinical sample / swab</td><td>{requested[c.id]?"Request submitted":"Pending"}</td><td><button className="primary small" onClick={()=>{setRequested({...requested,[c.id]:true});notify(`Sample request created for ${c.id}.`)}}>{requested[c.id]?"Submitted":"Request sample"}</button></td></tr>)}
-    </tbody></table></div>
-  </section>
+  const [requested,setRequested] = useState({});
+
+  const requestSample = (caseId) => {
+    setRequested({
+      ...requested,
+      [caseId]: true
+    });
+
+    notify(
+      `Sample collection request submitted for ${caseId}. Veterinary team can now coordinate collection and laboratory testing.`
+    );
+  };
+
+  return (
+    <section>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">CASE ESCALATION</div>
+          <h1>Lab Referral</h1>
+          <p>Coordinate sample collection and laboratory testing.</p>
+        </div>
+      </div>
+
+      <div className="panel table-panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Risk</th>
+              <th>Suggested sample</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {cases
+              .filter(c => c.status === "High")
+              .map(c => (
+                <tr key={c.id}>
+                  <td>
+                    <strong>{c.id}</strong>
+                    <small>{c.village} • {c.species}</small>
+                  </td>
+
+                  <td>
+                    <RiskBadge status={c.status} />
+                  </td>
+
+                  <td>
+                    <strong>Clinical sample / swab</strong>
+                    <small>For laboratory confirmation</small>
+                  </td>
+
+                  <td>
+                    {requested[c.id] ? (
+                      <div>
+                        <strong>Request submitted</strong>
+                        <small>Awaiting sample collection</small>
+                      </div>
+                    ) : (
+                      <div>
+                        <strong>Pending</strong>
+                        <small>Not yet requested</small>
+                      </div>
+                    )}
+                  </td>
+
+                  <td>
+                    <button
+                      className="primary small"
+                      onClick={() => requestSample(c.id)}
+                      disabled={requested[c.id]}
+                    >
+                      {requested[c.id] ? "Submitted ✓" : "Request sample"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 function Alerts({notify}) {
