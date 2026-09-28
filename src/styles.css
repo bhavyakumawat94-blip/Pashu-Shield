@@ -686,3 +686,397 @@
     line-height: 1.6;
   }
 }
+
+/* =====================================================
+   PASHU SHIELD ROUND 3 UPGRADE STYLES
+   ===================================================== */
+
+/* 12-Digit Yellow Ear-Tag Badge (USP 2) */
+.yellow-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fde047;
+  color: #713f12;
+  border: 1.5px solid #eab308;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .08em;
+  box-shadow: 0 1px 3px rgba(161, 98, 7, 0.15);
+}
+.yellow-tag-badge.large {
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 8px;
+}
+.yellow-tag-badge .tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #854d0e;
+  border: 1px solid #ca8a04;
+}
+
+/* Animal Profile & Health Records (USP 1) */
+.animal-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf0ed;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.animal-info-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.animal-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #e8f5ec;
+  color: #176438;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+.animal-title h2 {
+  margin: 0 0 5px;
+  font-size: 20px;
+  color: #17231b;
+}
+.animal-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #65756a;
+}
+.animal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.animal-card-item {
+  background: white;
+  border: 1px solid #e1e8e1;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all .15s ease;
+  cursor: pointer;
+}
+.animal-card-item:hover {
+  border-color: #2e8b57;
+  box-shadow: 0 4px 15px rgba(23, 100, 56, 0.08);
+  transform: translateY(-2px);
+}
+.animal-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.animal-card-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: #f8faf8;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.animal-card-specs span {
+  color: #6c7a70;
+}
+.animal-card-specs strong {
+  color: #17231b;
+  display: block;
+}
+
+/* Health Record Timeline (USP 1) */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  position: relative;
+  padding-left: 20px;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: #d8e4da;
+}
+.timeline-item {
+  position: relative;
+  background: #fbfdfb;
+  border: 1px solid #e2e8e2;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -19px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #176438;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px #176438;
+}
+.timeline-item.vaccination::before { background: #2563eb; box-shadow: 0 0 0 1px #2563eb; }
+.timeline-item.treatment::before { background: #ea580c; box-shadow: 0 0 0 1px #ea580c; }
+.timeline-item.checkup::before { background: #16a34a; box-shadow: 0 0 0 1px #16a34a; }
+.timeline-item.case::before { background: #dc2626; box-shadow: 0 0 0 1px #dc2626; }
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.timeline-type {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.timeline-type.vaccination { background: #dbeafe; color: #1e40af; }
+.timeline-type.treatment { background: #ffedd5; color: #9a3412; }
+.timeline-type.checkup { background: #dcfce7; color: #166534; }
+.timeline-type.case { background: #fee2e2; color: #991b1b; }
+.timeline-date {
+  font-size: 10px;
+  color: #718077;
+}
+
+/* Explainable Triage Breakdown (USP 3) */
+.triage-box {
+  background: #fcfdfc;
+  border: 1px solid #dce5dd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.triage-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.triage-factor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.triage-factor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #edf1ed;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.triage-factor-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.triage-category {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.category-symptom { background: #fee2e2; color: #991b1b; }
+.category-cluster { background: #fef3c7; color: #92400e; }
+.category-severity { background: #ede9fe; color: #5b21b6; }
+.category-history { background: #e0e7ff; color: #3730a3; }
+.factor-pts {
+  font-weight: 800;
+  font-size: 12px;
+  color: #b91c1c;
+}
+.triage-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  margin-top: 12px;
+  line-height: 1.4;
+}
+
+/* Offline Status and Auto-Sync UI (USP 4) */
+.offline-sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.offline-sync-bar.online {
+  background: #e8f5ec;
+  color: #166534;
+  border: 1px solid #cce8d3;
+}
+.offline-sync-bar.offline {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.sync-counter-chip {
+  background: #f97316;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 6px;
+}
+.sync-btn-small {
+  border: none;
+  background: #176438;
+  color: white;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sync-btn-small:hover {
+  background: #114c2a;
+}
+.sync-btn-small:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Multilingual Voice UI (USP 5) */
+.lang-selector-bar {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.lang-btn {
+  border: 1px solid #d4dfd6;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #49584d;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.lang-btn.active {
+  background: #176438;
+  color: white;
+  border-color: #176438;
+}
+.transcription-preview {
+  margin-top: 10px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #d0ddd3;
+  border-radius: 8px;
+}
+.transcription-preview label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #55665a;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 61, 40, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.modal-box {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+.modal-box.large {
+  max-width: 860px;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e7eee8;
+}
+.modal-head h2 {
+  margin: 0;
+  font-size: 19px;
+  color: #17231b;
+}
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #718077;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.close-btn:hover {
+  background: #f0f4f1;
+}
+
+/* QR Code Display */
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px;
+  background: #f7faf7;
+  border: 1px dashed #cad7cd;
+  border-radius: 12px;
+}
+.qr-container small {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #637568;
+}
