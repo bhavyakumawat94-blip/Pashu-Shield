@@ -4,7 +4,8 @@ import {
   Activity, AlertTriangle, Bell, CheckCircle2, ClipboardList, CloudOff,
   FileText, HeartPulse, Home, Languages, MapPin, Menu, PawPrint,
   Search, ShieldCheck, Stethoscope, Syringe, TrendingUp, Upload, UserRound,
-  Wifi, WifiOff, X, Tag
+  Wifi, WifiOff, X, Tag, Bot, Sparkles, BookOpen, Clock, Lock,
+  PhoneCall, ArrowRight, Check
 } from "lucide-react";
 import "./styles.css";
 import { loadCases, saveCase, saveCasesLocal } from "./lib/casesDb";
@@ -14,6 +15,23 @@ import { computeTriageBreakdown, ExplainableTriageBox } from "./components/Expla
 import { VoiceReporting, extractSymptomKeywords } from "./components/VoiceReporting";
 import { AnimalRecords } from "./components/AnimalRecords";
 import { OfflineSyncBadge } from "./components/OfflineSyncBadge";
+import { LanguageSelector } from "./components/LanguageSelector";
+import { PashuAiAssistant, FloatingAiButton } from "./components/PashuAiAssistant";
+import { DigitalHealthPassport } from "./components/DigitalHealthPassport";
+import { EarlyWarningNetwork } from "./components/EarlyWarningNetwork";
+import { RiskTimeline } from "./components/RiskTimeline";
+import { ComplianceTracker } from "./components/ComplianceTracker";
+import { KnowledgeHub } from "./components/KnowledgeHub";
+import { LabReferralUpgrade } from "./components/LabReferralUpgrade";
+import { FarmerAccessibilityMode } from "./components/FarmerAccessibilityMode";
+import { DataTrustCenter } from "./components/DataTrustCenter";
+import {
+  t,
+  getLanguage,
+  subscribeLanguage,
+  formatNumber,
+  formatDate
+} from "./lib/i18n";
 import {
   loadAnimals,
   saveAnimal,
@@ -116,11 +134,24 @@ function App() {
   const [dbReady, setDbReady] = useState(false);
   const [session, setSession] = useState(null);
 
+  // Multilingual reactive state
+  const [activeLang, setActiveLang] = useState(getLanguage());
+  useEffect(() => {
+    return subscribeLanguage((newLang) => {
+      setActiveLang(newLang);
+    });
+  }, []);
+
   // Offline and Auto-Sync State (USP 4)
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
   const [pendingReports, setPendingReports] = useState([]);
   const [syncing, setSyncing] = useState(false);
+
+  // New Production Feature States
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [activePassportAnimal, setActivePassportAnimal] = useState(null);
+  const [isFarmerAccessibilityMode, setIsFarmerAccessibilityMode] = useState(false);
 
   // Supabase Auth and User Role
   useEffect(() => {
@@ -256,8 +287,6 @@ function App() {
     setLoginError("");
 
     if (!supabase) {
-      // In local demo prototype mode when cloud credentials are not supplied,
-      // allow instant evaluator login with the provided demo accounts.
       const isVet = email.toLowerCase().includes("vet");
       setRole(isVet ? "vet" : "farmer");
       setPage(isVet ? "dashboard" : "farmer");
@@ -276,20 +305,28 @@ function App() {
     }
   };
 
-  // Upgraded Navigation incorporating Animal Health Records (USP 1 & 2)
+  // Upgraded Navigation incorporating all USPs and features
   const nav = role === "vet" ? [
-    ["dashboard", "Dashboard", Home],
-    ["cases", "Priority Cases", ClipboardList],
-    ["animals", "Animal Records", PawPrint],
-    ["map", "Risk Map", MapPin],
-    ["forecast", "Forecast", TrendingUp],
-    ["lab", "Lab Referral", Syringe],
-    ["alerts", "Alerts", Bell],
+    ["dashboard", t("navDashboard"), Home],
+    ["cases", t("navCases"), ClipboardList],
+    ["animals", t("navAnimals"), PawPrint],
+    ["earlyWarning", t("navEarlyWarning"), AlertTriangle],
+    ["compliance", t("navCompliance"), Syringe],
+    ["timeline", "Risk Timeline", Activity],
+    ["map", t("navMap"), MapPin],
+    ["forecast", t("navForecast"), TrendingUp],
+    ["lab", t("navLab"), Stethoscope],
+    ["alerts", t("navAlerts"), Bell],
+    ["trust", t("navDataTrust"), ShieldCheck]
   ] : [
-    ["farmer", "My Dashboard", Home],
-    ["report", "Report Issue", HeartPulse],
-    ["animals", "My Herd & Records", PawPrint],
-    ["advisories", "Advisories", Bell],
+    ["farmer", isFarmerAccessibilityMode ? t("navAccessibility") : t("navMyDashboard"), Home],
+    ["report", t("navReportIssue"), HeartPulse],
+    ["animals", t("navMyHerd"), PawPrint],
+    ["compliance", t("navCompliance"), Syringe],
+    ["knowledge", t("navKnowledgeHub"), BookOpen],
+    ["advisories", t("navAdvisories"), Bell],
+    ["accessMode", isFarmerAccessibilityMode ? "Standard Dashboard" : t("navAccessibility"), Sparkles],
+    ["trust", t("navDataTrust"), ShieldCheck]
   ];
 
   const handleLogout = async () => {
@@ -307,7 +344,6 @@ function App() {
 
   // Case submission handler supporting offline queueing and auto-sync (USP 4)
   const handleCaseSubmit = async (newCase, newAnimalToRegister = null) => {
-    // If a new animal was registered in the report form, save it first
     if (newAnimalToRegister) {
       try {
         const savedAnm = await saveAnimal(newAnimalToRegister, animals);
@@ -322,7 +358,6 @@ function App() {
     const effectivelyOnline = isOnline && !isSimulatedOffline;
 
     if (!effectivelyOnline) {
-      // Save offline in IndexedDB (USP 4)
       try {
         const queued = await savePendingReport(newCase);
         const pendingList = await getPendingReports();
@@ -339,7 +374,6 @@ function App() {
       return;
     }
 
-    // Online submission path
     try {
       const saved = await saveCase(newCase);
       setCases((prev) => [saved, ...prev.filter((x) => x.id !== saved.id)]);
@@ -348,7 +382,6 @@ function App() {
       setRole("vet");
       notify("Report saved to database and escalated to veterinary dashboard.");
     } catch (err) {
-      // Fallback to offline queue
       const queued = await savePendingReport(newCase);
       const pendingList = await getPendingReports();
       setPendingReports(pendingList);
@@ -373,7 +406,7 @@ function App() {
     return saved;
   };
 
-  // Sign-in / Landing Page (Preserved)
+  // Sign-in / Landing Page with Multilingual Selector
   if (!session) {
     const fillDemo = (demoEmail) => {
       setEmail(demoEmail);
@@ -383,21 +416,24 @@ function App() {
 
     return (
       <div className="login-page">
-        {/* HEADER */}
+        {/* HEADER WITH LANGUAGE SELECTOR */}
         <header className="landing-header">
           <div className="landing-brand">
             <div className="landing-logo">
               <ShieldCheck size={30} />
             </div>
             <div>
-              <strong>PASHU SHIELD</strong>
-              <span>Livestock Health Surveillance System</span>
+              <strong>{t("appTitle")}</strong>
+              <span>{t("appSubtitle")}</span>
             </div>
           </div>
 
-          <div className="landing-status">
-            <span className="status-dot"></span>
-            Early Warning • Veterinary Response • SIH 2026
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <LanguageSelector variant="landing" />
+            <div className="landing-status">
+              <span className="status-dot"></span>
+              {t("crumbStage")}
+            </div>
           </div>
         </header>
 
@@ -411,13 +447,13 @@ function App() {
             </div>
 
             <h1>
-              Detect Early.
+              {t("detectProtect").split(".")[0]}.
               <br />
-              <span>Protect Faster.</span>
+              <span>{t("detectProtect").split(".")[1] || "Protect Faster."}</span>
             </h1>
 
             <p className="hero-text">
-              PASHU SHIELD connects farmer observations with digital animal health records, 12-digit Livestock IDs, offline reporting, multilingual voice intake, and transparent veterinary triage intelligence.
+              {t("landingHeroText")}
             </p>
 
             <div className="hero-features">
@@ -442,7 +478,7 @@ function App() {
                   <Stethoscope size={21} />
                 </div>
                 <strong>Offline & Voice Sync</strong>
-                <span>Hindi, Marathi & English reporting</span>
+                <span>22 Indian Languages + AI Companion</span>
               </div>
             </div>
 
@@ -484,30 +520,30 @@ function App() {
               <div className="login-shield">
                 <ShieldCheck size={27} />
               </div>
-              <span className="login-welcome">Welcome back</span>
-              <h2>Sign in to PASHU SHIELD</h2>
-              <p>Access your livestock health dashboard</p>
+              <span className="login-welcome">{t("welcomeBack")}</span>
+              <h2>{t("signInToApp")}</h2>
+              <p>{t("accessDashboard")}</p>
             </div>
 
             <form onSubmit={handleLogin}>
-              <label className="login-label">Email address</label>
+              <label className="login-label">{t("emailAddress")}</label>
               <div className="landing-input">
                 <UserRound size={18} />
                 <input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t("enterEmail")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
 
-              <label className="login-label">Password</label>
+              <label className="login-label">{t("password")}</label>
               <div className="landing-input">
                 <ShieldCheck size={18} />
                 <input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t("enterPassword")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -522,14 +558,14 @@ function App() {
               )}
 
               <button type="submit" className="landing-signin">
-                Sign In
+                {t("signInBtn")}
                 <span>→</span>
               </button>
             </form>
 
             <div className="login-secure">
               <CheckCircle2 size={15} />
-              Secure role-based access
+              {t("secureAccess")}
             </div>
           </section>
         </div>
@@ -542,12 +578,10 @@ function App() {
             </div>
             <div>
               <h3>
-                Demo Credentials
-                <span>For Evaluators</span>
+                {t("demoCredentials")}{" "}
+                <span>{t("forEvaluators")}</span>
               </h3>
-              <p>
-                Use these dedicated accounts to evaluate farmer reporting, offline sync, voice input, and veterinary decision workflows.
-              </p>
+              <p>{t("evaluatorNotice")}</p>
             </div>
           </div>
 
@@ -560,14 +594,14 @@ function App() {
               <div className="credential-details">
                 <div className="credential-title">
                   <div>
-                    <strong>Farmer / Field Worker</strong>
+                    <strong>{t("farmerFieldWorker")}</strong>
                     <span>Report health issues, view herd & sync offline</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => fillDemo("farmer@pashushield.com")}
                   >
-                    Use Account
+                    {t("useAccount")}
                   </button>
                 </div>
                 <div className="credential-line">
@@ -589,14 +623,14 @@ function App() {
               <div className="credential-details">
                 <div className="credential-title">
                   <div>
-                    <strong>Veterinary Officer</strong>
+                    <strong>{t("vetOfficer")}</strong>
                     <span>Monitor triage, animal records & lab referrals</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => fillDemo("vet@pashushield.com")}
                   >
-                    Use Account
+                    {t("useAccount")}
                   </button>
                 </div>
                 <div className="credential-line">
@@ -613,9 +647,7 @@ function App() {
 
           <div className="evaluator-footer">
             <ShieldCheck size={16} />
-            <span>
-              DETECT EARLY • CONNECT CASES • PREDICT RISK • RESPOND FASTER
-            </span>
+            <span>{t("demoTagline")}</span>
           </div>
         </section>
       </div>
@@ -633,18 +665,18 @@ function App() {
             <ShieldCheck size={25} />
           </div>
           <div>
-            <strong>PASHU SHIELD</strong>
-            <small>Livestock Health Surveillance</small>
+            <strong>{t("appTitle")}</strong>
+            <small>{t("appSubtitle")}</small>
           </div>
         </div>
 
         <div className="role-pill">
-          <span>{role === "vet" ? "Veterinary Officer" : "Farmer / Field Worker"}</span>
-          <button onClick={switchRole}>Switch</button>
+          <span>{role === "vet" ? t("vetOfficer") : t("farmerFieldWorker")}</span>
+          <button onClick={switchRole}>{t("switchRole")}</button>
         </div>
 
         <button className="logout-button" onClick={handleLogout}>
-          Sign Out
+          {t("signOut")}
         </button>
 
         <nav>
@@ -653,7 +685,12 @@ function App() {
               key={id}
               className={page === id ? "nav-active" : ""}
               onClick={() => {
-                setPage(id);
+                if (id === "accessMode") {
+                  setIsFarmerAccessibilityMode((prev) => !prev);
+                  setPage("farmer");
+                } else {
+                  setPage(id);
+                }
                 setSidebar(false);
               }}
             >
@@ -667,9 +704,7 @@ function App() {
         <div className="offline" style={{ color: effectivelyOnline ? "#bde2c8" : "#fca5a5" }}>
           {effectivelyOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
           <span>
-            {effectivelyOnline
-              ? "Online • Auto-sync active"
-              : "Offline • IndexedDB enabled"}
+            {effectivelyOnline ? t("onlineAutoSync") : t("offlineStorage")}
           </span>
           {pendingReports.length > 0 && (
             <span className="sync-counter-chip">
@@ -690,10 +725,25 @@ function App() {
             <Menu />
           </button>
           <div className="crumb">
-            SIH 2026 • PASHU SHIELD {dbReady ? "• Cloud data ready" : "• Connecting data…"}
+            {t("crumbStage")} {dbReady ? `• ${t("cloudReady")}` : `• ${t("connectingData")}`}
           </div>
 
           <div className="top-actions">
+            {/* Multilingual Selector in Topbar */}
+            <LanguageSelector variant="topbar" />
+
+            {/* PASHU AI Trigger Button in Topbar */}
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => setShowAiAssistant(true)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", color: "#166534", borderColor: "#86efac" }}
+              title="Open PASHU AI Assistant"
+            >
+              <Bot size={16} />
+              <span>PASHU AI</span>
+            </button>
+
             {/* Live Online/Offline Status Pill & Auto-Sync Trigger (USP 4) */}
             <OfflineSyncBadge
               isOnline={isOnline}
@@ -721,7 +771,7 @@ function App() {
               <div className="avatar">
                 <UserRound size={17} />
               </div>
-              <span>{role === "vet" ? "Dr. Sharma (VO)" : "Farmer Account"}</span>
+              <span>{role === "vet" ? t("drSharma") : t("farmerAccount")}</span>
             </div>
           </div>
         </header>
@@ -746,6 +796,7 @@ function App() {
               animals={animals}
               setSelectedCase={setSelectedCase}
               setPage={setPage}
+              onViewPassport={(anm) => setActivePassportAnimal(anm)}
             />
           )}
 
@@ -758,22 +809,70 @@ function App() {
               role={role}
               onSaveAnimal={handleSaveAnimal}
               onSaveHealthRecord={handleSaveHealthRecord}
+              onOpenPassport={(anm) => setActivePassportAnimal(anm)}
               notify={notify}
             />
           )}
 
+          {/* Exclusive USP Views */}
+          {role === "vet" && page === "earlyWarning" && (
+            <EarlyWarningNetwork cases={cases} onNotify={notify} />
+          )}
+
+          {page === "compliance" && (
+            <ComplianceTracker
+              animals={animals}
+              healthRecords={healthRecords}
+              role={role}
+              onSaveHealthRecord={handleSaveHealthRecord}
+              notify={notify}
+            />
+          )}
+
+          {page === "timeline" && (
+            <RiskTimeline
+              animal={animals[0]}
+              animals={animals}
+              cases={cases}
+              healthRecords={healthRecords}
+            />
+          )}
+
+          {page === "knowledge" && (
+            <KnowledgeHub onNotify={notify} />
+          )}
+
           {role === "vet" && page === "map" && <RiskMap cases={cases} />}
           {role === "vet" && page === "forecast" && <Forecast />}
-          {role === "vet" && page === "lab" && <Lab cases={cases} notify={notify} />}
+
+          {/* Lab Referral Upgrade (Feature 6) */}
+          {role === "vet" && page === "lab" && (
+            <LabReferralUpgrade cases={cases} role={role} notify={notify} />
+          )}
+
           {role === "vet" && page === "alerts" && <Alerts notify={notify} />}
+
+          {/* Data Trust Center (Feature 8) */}
+          {page === "trust" && <DataTrustCenter notify={notify} />}
 
           {/* Farmer Views */}
           {role === "farmer" && page === "farmer" && (
-            <FarmerHome
-              setPage={setPage}
-              animalsCount={animals.length}
-              pendingCount={pendingReports.length}
-            />
+            isFarmerAccessibilityMode ? (
+              <FarmerAccessibilityMode
+                setPage={setPage}
+                isOnline={effectivelyOnline}
+                pendingCount={pendingReports.length}
+                onOpenAiAssistant={() => setShowAiAssistant(true)}
+              />
+            ) : (
+              <FarmerHome
+                setPage={setPage}
+                animalsCount={animals.length}
+                pendingCount={pendingReports.length}
+                onOpenAiAssistant={() => setShowAiAssistant(true)}
+                onToggleAccessibility={() => setIsFarmerAccessibilityMode(true)}
+              />
+            )
           )}
 
           {role === "farmer" && page === "report" && (
@@ -785,42 +884,43 @@ function App() {
             />
           )}
 
-          {role === "farmer" && page === "herd" && (
-            <AnimalRecords
-              animals={animals}
-              healthRecords={healthRecords}
-              cases={cases}
-              role={role}
-              onSaveAnimal={handleSaveAnimal}
-              onSaveHealthRecord={handleSaveHealthRecord}
-              notify={notify}
-            />
-          )}
-
-          {role === "farmer" && page === "records" && (
-            <AnimalRecords
-              animals={animals}
-              healthRecords={healthRecords}
-              cases={cases}
-              role={role}
-              onSaveAnimal={handleSaveAnimal}
-              onSaveHealthRecord={handleSaveHealthRecord}
-              notify={notify}
-            />
-          )}
-
           {role === "farmer" && page === "advisories" && (
-            <SimplePage title="Alerts & Advisories" icon={Bell}>
+            <SimplePage title={t("navAdvisories")} icon={Bell}>
               <Advisories />
             </SimplePage>
           )}
         </div>
 
+        {/* TOAST NOTIFICATION */}
         {toast && (
           <div className="toast">
             <CheckCircle2 size={17} />
             {toast}
           </div>
+        )}
+
+        {/* DIGITAL HEALTH PASSPORT MODAL (USP 1) */}
+        {activePassportAnimal && (
+          <DigitalHealthPassport
+            animal={activePassportAnimal}
+            healthRecords={healthRecords}
+            cases={cases}
+            role={role}
+            onClose={() => setActivePassportAnimal(null)}
+            onAddRecord={handleSaveHealthRecord}
+            notify={notify}
+          />
+        )}
+
+        {/* PASHU AI ASSISTANT MODAL (FEATURE 2) */}
+        <PashuAiAssistant
+          isOpen={showAiAssistant}
+          onClose={() => setShowAiAssistant(false)}
+        />
+
+        {/* PASHU AI FLOATING BUTTON */}
+        {!showAiAssistant && (
+          <FloatingAiButton onClick={() => setShowAiAssistant(true)} />
         )}
       </main>
     </div>
@@ -834,30 +934,33 @@ function VetDashboard({ cases, animalsCount, high, medium, low, setPage, setSele
       <div className="page-head">
         <div>
           <div className="eyebrow">VETERINARY DECISION DASHBOARD</div>
-          <h1>Livestock Health Overview</h1>
-          <p>Prioritize suspected cases, review 12-digit animal tag history, and respond to emerging disease risk.</p>
+          <h1>{t("livestockHealthOverview")}</h1>
+          <p>{t("prioritizeSuspectedCases")}</p>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button className="secondary" onClick={() => setPage("animals")}>
-            <PawPrint size={17} /> Animal Records ({animalsCount})
+            <PawPrint size={17} /> {t("navAnimals")} ({animalsCount})
+          </button>
+          <button className="secondary" onClick={() => setPage("earlyWarning")}>
+            <AlertTriangle size={17} /> Early Warning Network
           </button>
           <button className="primary" onClick={() => setPage("cases")}>
-            <ClipboardList size={17} /> View Priority Cases
+            <ClipboardList size={17} /> {t("viewPriorityCases")}
           </button>
         </div>
       </div>
 
       <div className="stats">
-        <Stat icon={Activity} label="Active Cases" value={cases.length} hint="Across monitored villages" />
-        <Stat icon={AlertTriangle} label="High Risk" value={high} hint="Immediate clinical review" />
-        <Stat icon={TrendingUp} label="Medium Risk" value={medium} hint="Monitor closely" />
-        <Stat icon={CheckCircle2} label="Low Risk" value={low} hint="Routine follow-up" />
+        <Stat icon={Activity} label={t("activeCases")} value={cases.length} hint={t("acrossVillages")} />
+        <Stat icon={AlertTriangle} label={t("highRisk")} value={high} hint={t("immediateReview")} />
+        <Stat icon={TrendingUp} label={t("mediumRisk")} value={medium} hint={t("monitorClosely")} />
+        <Stat icon={CheckCircle2} label={t("lowRisk")} value={low} hint={t("routineFollowup")} />
       </div>
 
       <div className="grid-2">
         <div className="panel">
           <div className="panel-head">
-            <h2>🔴 High Priority Cases</h2>
+            <h2>🔴 {t("highRisk")} {t("navCases")}</h2>
             <button className="text-btn" onClick={() => setPage("cases")}>
               View all
             </button>
@@ -876,19 +979,19 @@ function VetDashboard({ cases, animalsCount, high, medium, low, setPage, setSele
 
         <div className="panel">
           <div className="panel-head">
-            <h2>Risk Distribution</h2>
+            <h2>{t("riskDistribution")}</h2>
           </div>
           <div className="donut-wrap">
             <div className="donut">
               <div>
                 <strong>{cases.length}</strong>
-                <span>Total Cases</span>
+                <span>{t("totalCases")}</span>
               </div>
             </div>
             <div className="legend">
-              <span><i className="dot high"></i>High <b>{high}</b></span>
-              <span><i className="dot medium"></i>Medium <b>{medium}</b></span>
-              <span><i className="dot low"></i>Low <b>{low}</b></span>
+              <span><i className="dot high"></i>{t("highRisk")} <b>{high}</b></span>
+              <span><i className="dot medium"></i>{t("mediumRisk")} <b>{medium}</b></span>
+              <span><i className="dot low"></i>{t("lowRisk")} <b>{low}</b></span>
             </div>
           </div>
         </div>
@@ -897,7 +1000,7 @@ function VetDashboard({ cases, animalsCount, high, medium, low, setPage, setSele
       <div className="panel map-preview">
         <div className="panel-head">
           <div>
-            <h2>Disease Risk Map</h2>
+            <h2>{t("navMap")}</h2>
             <p>Cluster view of reported livestock health cases.</p>
           </div>
           <button className="secondary" onClick={() => setPage("map")}>
@@ -917,7 +1020,7 @@ function CaseRow({ c, onClick }) {
       <div className="case-main">
         <strong>{c.id} • {c.village}</strong>
         <span>
-          {c.species} • {c.affected} affected • {c.mortality} mortality
+          {c.species} • {c.affected} {t("affected")} • {c.mortality} {t("mortality")}
           {c.livestockId && ` • Tag: ${c.livestockId}`}
         </span>
       </div>
@@ -930,7 +1033,7 @@ function CaseRow({ c, onClick }) {
 }
 
 // Case Management & Priority Cases (USPs 1, 2, 3, 4)
-function Cases({ cases, animals, setPage }) {
+function Cases({ cases, animals, setPage, onViewPassport }) {
   const [selectedCaseId, setSelectedCaseId] = useState(cases[0]?.id || null);
   const [query, setQuery] = useState("");
 
@@ -953,7 +1056,7 @@ function Cases({ cases, animals, setPage }) {
       <div className="page-head">
         <div>
           <div className="eyebrow">CASE MANAGEMENT (USPs 1, 2 & 3)</div>
-          <h1>Priority Cases</h1>
+          <h1>{t("navCases")}</h1>
           <p>Review field reports, 12-digit tag history, explainable triage risk factors, and escalate cases.</p>
         </div>
       </div>
@@ -963,7 +1066,7 @@ function Cases({ cases, animals, setPage }) {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by Case ID, village, species, or 12-digit Livestock ID..."
+          placeholder={t("searchPlaceholder")}
         />
       </div>
 
@@ -971,14 +1074,14 @@ function Cases({ cases, animals, setPage }) {
         <table>
           <thead>
             <tr>
-              <th>Case ID</th>
-              <th>Animal Identification</th>
-              <th>Location</th>
-              <th>Animals</th>
-              <th>Symptoms</th>
-              <th>Triage Risk</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t("caseId")}</th>
+              <th>{t("animalIdHeader")}</th>
+              <th>{t("location")}</th>
+              <th>{t("animals")}</th>
+              <th>{t("symptoms")}</th>
+              <th>{t("triageRisk")}</th>
+              <th>{t("status")}</th>
+              <th>{t("action")}</th>
             </tr>
           </thead>
 
@@ -1005,7 +1108,7 @@ function Cases({ cases, animals, setPage }) {
                     <YellowTag id={c.livestockId} />
                   ) : (
                     <span style={{ fontSize: "10px", color: "#9ca3af" }}>
-                      Untagged
+                      {t("untagged")}
                     </span>
                   )}
                   {c.animalId && (
@@ -1018,9 +1121,9 @@ function Cases({ cases, animals, setPage }) {
                 <td>{c.village}</td>
 
                 <td>
-                  {c.affected} affected
+                  {c.affected} {t("affected")}
                   <br />
-                  {c.mortality} mortality
+                  {c.mortality} {t("mortality")}
                 </td>
 
                 <td>{c.symptoms.join(", ")}</td>
@@ -1048,7 +1151,7 @@ function Cases({ cases, animals, setPage }) {
                       setSelectedCaseId(c.id);
                     }}
                   >
-                    Review
+                    {t("review")}
                   </button>
                 </td>
               </tr>
@@ -1062,6 +1165,7 @@ function Cases({ cases, animals, setPage }) {
           c={selectedCase}
           allCases={cases}
           animal={animals.find((a) => a.id === selectedCase.animalId || (selectedCase.livestockId && a.livestockId === selectedCase.livestockId))}
+          onViewPassport={onViewPassport}
         />
       )}
     </section>
@@ -1069,10 +1173,9 @@ function Cases({ cases, animals, setPage }) {
 }
 
 // Case Detail View featuring 12-digit Livestock ID, Voice transcription, and Explainable Triage (USPs 2, 3, 5)
-function CaseDetail({ c, allCases, animal }) {
+function CaseDetail({ c, allCases, animal, onViewPassport }) {
   if (!c) return null;
 
-  // Compute explainable factor breakdown for this case
   const triageBreakdown = computeTriageBreakdown({
     form: {
       fever: c.symptoms?.includes("Fever"),
@@ -1096,7 +1199,7 @@ function CaseDetail({ c, allCases, animal }) {
         <div className="advice" style={{ background: "#f0fdf4", borderColor: "#bbf7d0", marginBottom: "16px" }}>
           <div style={{ width: "100%" }}>
             <strong style={{ display: "flex", alignItems: "center", gap: "6px", color: "#166534" }}>
-              🎙️ Farmer Voice Report & Transcription (USP 5)
+              🎙️ {t("farmerVoiceTranscription")} (USP 5)
             </strong>
             {c.voiceUrl && (
               <audio controls src={c.voiceUrl} style={{ width: "100%", height: "36px", marginTop: "8px" }} />
@@ -1105,7 +1208,7 @@ function CaseDetail({ c, allCases, animal }) {
               <p style={{ marginTop: "8px", fontStyle: "italic", color: "#14532d", fontSize: "12px", background: "white", padding: "8px 12px", borderRadius: "6px", border: "1px solid #dcfce7" }}>
                 "{c.transcription}"
                 <span style={{ display: "block", fontSize: "10px", color: "#6b7280", marginTop: "3px", fontStyle: "normal" }}>
-                  Intake Language: {c.voiceLang || "en-IN"}
+                  {t("intakeLanguage")}: {c.voiceLang || "en-IN"}
                 </span>
               </p>
             )}
@@ -1116,14 +1219,19 @@ function CaseDetail({ c, allCases, animal }) {
       {/* Case Header with 12-digit Yellow Tag (USP 2) */}
       <div className="panel-head">
         <div>
-          <div className="eyebrow">SELECTED CASE DETAILS</div>
+          <div className="eyebrow">{t("selectedCaseDetails")}</div>
           <h2>{c.id} • {c.village}</h2>
-          <div style={{ marginTop: "6px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ marginTop: "6px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
             {c.livestockId && <YellowTag id={c.livestockId} />}
             {animal && (
-              <span style={{ fontSize: "11px", color: "#166534", fontWeight: "700" }}>
-                Animal: {animal.nameTag} ({animal.species})
-              </span>
+              <button
+                type="button"
+                className="secondary small"
+                onClick={() => onViewPassport && onViewPassport(animal)}
+                style={{ padding: "3px 8px", fontSize: "11px" }}
+              >
+                📜 Open Health Passport: {animal.nameTag}
+              </button>
             )}
           </div>
         </div>
@@ -1132,19 +1240,19 @@ function CaseDetail({ c, allCases, animal }) {
 
       <div className="detail-grid">
         <div>
-          <span>Triage Risk Score</span>
+          <span>{t("triageRiskScore")}</span>
           <strong className="big-score">{c.score}%</strong>
         </div>
         <div>
-          <span>Species</span>
+          <span>{t("species")}</span>
           <strong>{c.species}</strong>
         </div>
         <div>
-          <span>Morbidity</span>
-          <strong>{c.affected} affected</strong>
+          <span>{t("morbidity")}</span>
+          <strong>{c.affected} {t("affected")}</strong>
         </div>
         <div>
-          <span>Mortality</span>
+          <span>{t("mortality")}</span>
           <strong>{c.mortality} dead</strong>
         </div>
       </div>
@@ -1155,9 +1263,9 @@ function CaseDetail({ c, allCases, animal }) {
       <div className="advice" style={{ marginTop: "16px" }}>
         <Stethoscope size={19} />
         <div>
-          <strong>Veterinary Response Recommendation</strong>
+          <strong>{t("vetRecommendation")}</strong>
           <p>
-            Review clinical presentation, verify vaccination history for {c.livestockId ? `Livestock ID ${c.livestockId}` : "monitored herd"}, and schedule confirmatory sample collection via Lab Referral if symptoms persist.
+            {t("vetRecommendationText", { tag: c.livestockId ? `Livestock ID ${c.livestockId}` : "monitored herd" })}
           </p>
         </div>
       </div>
@@ -1171,7 +1279,7 @@ function RiskMap({ cases }) {
       <div className="page-head">
         <div>
           <div className="eyebrow">GEO-SPATIAL SURVEILLANCE</div>
-          <h1>Disease Risk Map</h1>
+          <h1>{t("navMap")}</h1>
           <p>Visualize reported cases and emerging clusters.</p>
         </div>
       </div>
@@ -1199,9 +1307,9 @@ function MapGraphic({ cases, large = false }) {
         </div>
       ))}
       <div className="map-legend">
-        <span><i className="dot high"></i>High risk</span>
-        <span><i className="dot medium"></i>Medium</span>
-        <span><i className="dot low"></i>Low</span>
+        <span><i className="dot high"></i>{t("highRisk")}</span>
+        <span><i className="dot medium"></i>{t("mediumRisk")}</span>
+        <span><i className="dot low"></i>{t("lowRisk")}</span>
       </div>
     </div>
   );
@@ -1214,7 +1322,7 @@ function Forecast() {
       <div className="page-head">
         <div>
           <div className="eyebrow">DISEASE FORECASTING</div>
-          <h1>Emerging Risk Trends</h1>
+          <h1>{t("navForecast")}</h1>
           <p>Predictive signal based on historical cases, seasonality and reported symptoms.</p>
         </div>
       </div>
@@ -1245,101 +1353,9 @@ function Forecast() {
             </div>
           </div>
           <div className="note">
-            Prototype note: forecasting is demonstrated with rule-based metrics and historical signals. Architecture is structured to ingest validated ML model predictions.
+            Surveillance note: Forecasting combines rule-based clinical metrics, seasonal climate trends, and village case clusters.
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function Lab({ cases, notify }) {
-  const [requested, setRequested] = useState({});
-
-  const requestSample = (caseId) => {
-    setRequested({
-      ...requested,
-      [caseId]: true
-    });
-
-    notify(
-      `Sample collection request submitted for ${caseId}. Veterinary team can now coordinate collection and laboratory testing.`
-    );
-  };
-
-  return (
-    <section>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">CASE ESCALATION</div>
-          <h1>Lab Referral</h1>
-          <p>Coordinate sample collection and laboratory testing for high-risk alerts.</p>
-        </div>
-      </div>
-
-      <div className="panel table-panel">
-        <table>
-          <thead>
-            <tr>
-              <th>Case</th>
-              <th>Livestock ID</th>
-              <th>Risk</th>
-              <th>Suggested Sample</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {cases
-              .filter((c) => c.status === "High")
-              .map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <strong>{c.id}</strong>
-                    <small>{c.village} • {c.species}</small>
-                  </td>
-
-                  <td>
-                    {c.livestockId ? <YellowTag id={c.livestockId} /> : <small>Untagged</small>}
-                  </td>
-
-                  <td>
-                    <RiskBadge status={c.status} />
-                  </td>
-
-                  <td>
-                    <strong>Clinical swab / Blood sample</strong>
-                    <small>For confirmatory laboratory testing</small>
-                  </td>
-
-                  <td>
-                    {requested[c.id] ? (
-                      <div>
-                        <strong>Request submitted</strong>
-                        <small>Awaiting collection</small>
-                      </div>
-                    ) : (
-                      <div>
-                        <strong>Pending</strong>
-                        <small>Not yet requested</small>
-                      </div>
-                    )}
-                  </td>
-
-                  <td>
-                    <button
-                      className="primary small"
-                      onClick={() => requestSample(c.id)}
-                      disabled={requested[c.id]}
-                    >
-                      {requested[c.id] ? "Submitted ✓" : "Request sample"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
       </div>
     </section>
   );
@@ -1356,7 +1372,7 @@ function Alerts({ notify }) {
       <div className="page-head">
         <div>
           <div className="eyebrow">COMMUNICATION</div>
-          <h1>Alerts & Advisories</h1>
+          <h1>{t("navAlerts")}</h1>
           <p>Keep farmers and veterinary officers informed with actionable advisories.</p>
         </div>
         <button className="secondary" onClick={() => notify("Multilingual advisory broadcast prepared.")}>
@@ -1379,7 +1395,7 @@ function Alerts({ notify }) {
   );
 }
 
-function FarmerHome({ setPage, animalsCount, pendingCount }) {
+function FarmerHome({ setPage, animalsCount, pendingCount, onOpenAiAssistant, onToggleAccessibility }) {
   return (
     <section>
       <div className="page-head">
@@ -1388,18 +1404,23 @@ function FarmerHome({ setPage, animalsCount, pendingCount }) {
           <h1>Namaste 👋</h1>
           <p>Digital livestock health monitoring, offline reporting, and veterinary guidance.</p>
         </div>
-        <button className="primary" onClick={() => setPage("report")}>
-          <HeartPulse size={17} /> Report Health Issue
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button className="secondary" onClick={onToggleAccessibility}>
+            ♿ Farmer Accessible Mode
+          </button>
+          <button className="primary" onClick={() => setPage("report")}>
+            <HeartPulse size={17} /> {t("navReportIssue")}
+          </button>
+        </div>
       </div>
 
       <div className="farmer-banner">
         <div>
           <ShieldCheck size={30} />
           <div>
-            <h2>Early reporting protects your herd</h2>
+            <h2>{t("detectProtect")}</h2>
             <p>
-              Report via multilingual voice (English, Hindi, Marathi) or form. Works completely offline with automatic sync.
+              Report via multilingual voice (22 Indian Languages) or form. Works completely offline with automatic sync.
             </p>
           </div>
         </div>
@@ -1410,15 +1431,24 @@ function FarmerHome({ setPage, animalsCount, pendingCount }) {
       </div>
 
       <div className="stats">
-        <Stat icon={PawPrint} label="Registered Animals" value={animalsCount} hint="With 12-digit tag registry" />
-        <Stat icon={Syringe} label="Vaccinations Logged" value="6" hint="FMD & Brucellosis" />
-        <Stat icon={Bell} label="Active Advisories" value="2" hint="Review guidelines today" />
-        <Stat icon={Activity} label="Pending Sync" value={pendingCount} hint="Queued in IndexedDB" />
+        <Stat icon={PawPrint} label={t("registeredAnimals")} value={animalsCount} hint={t("withTagRegistry")} />
+        <Stat icon={Syringe} label={t("vaccinationsLogged")} value="6" hint={t("fmdBrucellosis")} />
+        <Stat icon={Bell} label={t("activeAdvisories")} value="2" hint={t("reviewGuidelines")} />
+        <Stat icon={Activity} label={t("pendingSync")} value={pendingCount} hint={t("queuedInIndexedDb")} />
       </div>
 
-      <div style={{ marginTop: "20px" }}>
-        <button className="secondary" onClick={() => setPage("animals")} style={{ width: "100%", padding: "14px", justifyContent: "center" }}>
-          <PawPrint size={18} /> Open My Herd & Digital Health Records →
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px", marginTop: "20px" }}>
+        <button className="secondary" onClick={() => setPage("animals")} style={{ padding: "14px", justifyContent: "center" }}>
+          <PawPrint size={18} /> {t("navMyHerd")} →
+        </button>
+        <button className="secondary" onClick={() => setPage("compliance")} style={{ padding: "14px", justifyContent: "center" }}>
+          <Syringe size={18} /> {t("navCompliance")} →
+        </button>
+        <button className="secondary" onClick={() => setPage("knowledge")} style={{ padding: "14px", justifyContent: "center" }}>
+          <BookOpen size={18} /> {t("navKnowledgeHub")} →
+        </button>
+        <button className="primary" onClick={onOpenAiAssistant} style={{ padding: "14px", justifyContent: "center" }}>
+          <Bot size={18} /> Ask PASHU AI Assistant →
         </button>
       </div>
     </section>
@@ -1451,7 +1481,6 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
 
   const update = (k, v) => setForm({ ...form, [k]: v });
 
-  // Handle animal selection change: auto-populates species, village, owner
   const handleAnimalSelect = (id) => {
     setSelectedAnimalId(id);
     if (id) {
@@ -1466,12 +1495,10 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
     }
   };
 
-  // Multilingual voice text intake (USP 5)
   const handleVoiceText = (text, lang) => {
     setVoiceText(text);
     setVoiceLang(lang);
 
-    // Auto-detect symptom keywords across English, Hindi, and Marathi
     const detected = extractSymptomKeywords(text);
     setForm((prev) => ({
       ...prev,
@@ -1483,7 +1510,6 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
     }));
   };
 
-  // Handle 12-digit Livestock ID validation (USP 2)
   const handleNewLivestockIdChange = (e) => {
     const raw = e.target.value;
     setNewLivestockId(raw);
@@ -1494,7 +1520,6 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
     }
   };
 
-  // Calculate explainable triage risk score
   const handleAssessRisk = (e) => {
     e.preventDefault();
 
@@ -1559,8 +1584,8 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
         <div className="page-head">
           <div>
             <div className="eyebrow">DECISION SUPPORT TRIAGE RESULT (USP 3)</div>
-            <h1>Triage Assessment Complete</h1>
-            <p>Rule-based clinical assessment generated. Review factor breakdown before submission.</p>
+            <h1>{t("triageAssessmentComplete")}</h1>
+            <p>{t("ruleBasedAssessmentNotice")}</p>
           </div>
         </div>
 
@@ -1585,7 +1610,6 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
             </div>
           </div>
 
-          {/* Explainable Factor Breakdown Component */}
           <ExplainableTriageBox breakdown={breakdown} />
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
@@ -1594,7 +1618,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
               className="secondary"
               onClick={() => setTriageResult(null)}
             >
-              ← Edit Symptoms
+              {t("editSymptoms")}
             </button>
 
             <button
@@ -1602,7 +1626,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
               className="primary"
               onClick={() => onSubmit(caseObject, triageResult.newAnimalData)}
             >
-              {isOnline ? "Send to Veterinary Dashboard →" : "Save to Offline Queue (Auto-Sync) →"}
+              {isOnline ? t("sendToVetDashboard") : t("saveToOfflineQueue")}
             </button>
           </div>
         </div>
@@ -1615,10 +1639,8 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
       <div className="page-head">
         <div>
           <div className="eyebrow">SYMPTOM & HEALTH REPORTING (USPs 1-5)</div>
-          <h1>Report Animal Health Issue</h1>
-          <p>
-            Record symptoms via multilingual voice or form. Digital animal tag linking and offline storage are active.
-          </p>
+          <h1>{t("reportHealthIssue")}</h1>
+          <p>{t("reportIssueDesc")}</p>
         </div>
       </div>
 
@@ -1627,7 +1649,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
         <div style={{ background: "#f8faf8", border: "1px solid #e1e8e1", borderRadius: "10px", padding: "16px", marginBottom: "18px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
             <PawPrint size={18} style={{ color: "#166534" }} />
-            <strong style={{ fontSize: "13px" }}>Link to Registered Animal Profile (USP 1 & 2)</strong>
+            <strong style={{ fontSize: "13px" }}>{t("linkToRegisteredProfile")} (USP 1 & 2)</strong>
           </div>
 
           <label style={{ fontSize: "11px", fontWeight: "700" }}>
@@ -1637,7 +1659,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
               onChange={(e) => handleAnimalSelect(e.target.value)}
               style={{ marginTop: "4px" }}
             >
-              <option value="">-- Choose Registered Animal or Add New --</option>
+              <option value="">{t("chooseRegisteredAnimal")}</option>
               {animals.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.nameTag} ({a.species}) {a.livestockId ? `• Tag #${a.livestockId}` : "• Untagged"}
@@ -1685,7 +1707,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
         {/* General Form Grid */}
         <div className="form-grid">
           <label>
-            Species
+            {t("species")}
             <select
               value={form.species}
               onChange={(e) => update("species", e.target.value)}
@@ -1699,7 +1721,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
           </label>
 
           <label>
-            Village / Location
+            {t("location")}
             <input
               value={form.village}
               onChange={(e) => update("village", e.target.value)}
@@ -1719,7 +1741,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
           </label>
 
           <label>
-            Mortality
+            {t("mortality")}
             <input
               type="number"
               min="0"
@@ -1730,14 +1752,14 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
           </label>
         </div>
 
-        <h3>Observed Symptoms</h3>
+        <h3>{t("observedSymptoms")}</h3>
         <div className="checks">
           {[
-            ["fever", "Fever (High temperature)"],
-            ["nasal", "Nasal discharge"],
-            ["cough", "Coughing"],
-            ["appetite", "Reduced appetite / feed refusal"],
-            ["lethargy", "Lethargy & recumbency"]
+            ["fever", t("fever")],
+            ["nasal", t("nasalDischarge")],
+            ["cough", t("cough")],
+            ["appetite", t("reducedAppetite")],
+            ["lethargy", t("lethargy")]
           ].map(([k, l]) => (
             <label className="check" key={k}>
               <input
@@ -1753,11 +1775,11 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
         <div className="upload">
           <Upload size={20} />
           <div>
-            <strong>Photo Evidence (Optional)</strong>
+            <strong>{t("photoEvidence")}</strong>
             <p>Upload lesion or animal appearance image for veterinary verification.</p>
           </div>
           <button type="button" className="secondary">
-            Choose photo
+            {t("choosePhoto")}
           </button>
         </div>
 
@@ -1775,7 +1797,7 @@ function ReportForm({ animals, cases, isOnline, onSubmit }) {
           </div>
 
           <button className="primary" type="submit">
-            <Activity size={17} /> Assess Triage Risk (USP 3)
+            <Activity size={17} /> {t("assessTriageRisk")}
           </button>
         </div>
       </form>

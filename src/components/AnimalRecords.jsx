@@ -22,6 +22,7 @@ export function AnimalRecords({
   role,
   onSaveAnimal,
   onSaveHealthRecord,
+  onOpenPassport,
   notify
 }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -193,6 +194,7 @@ export function AnimalRecords({
           cases={cases.filter((c) => c.animalId === activeAnimal.id || (activeAnimal.livestockId && c.livestockId === activeAnimal.livestockId))}
           onClose={() => setActiveAnimal(null)}
           onOpenAddRecord={() => setShowAddRecordModal(true)}
+          onOpenPassport={onOpenPassport}
         />
       )}
 
@@ -227,7 +229,7 @@ export function AnimalRecords({
 }
 
 // Modal displaying detailed animal profile, yellow tag, QR code, and chronological timeline
-function AnimalDetailModal({ animal, healthRecords, cases, onClose, onOpenAddRecord }) {
+function AnimalDetailModal({ animal, healthRecords, cases, onClose, onOpenAddRecord, onOpenPassport }) {
   const qrSvg = useMemo(() => {
     const qrData = `PASHU-SHIELD:${animal.id}:${animal.livestockId || "UNTAGGED"}:${animal.ownerName}`;
     return generateQrSvg(qrData, 140);
@@ -303,14 +305,28 @@ function AnimalDetailModal({ animal, healthRecords, cases, onClose, onOpenAddRec
         </div>
 
         {/* Action Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "8px", flexWrap: "wrap" }}>
           <h3 style={{ margin: 0, fontSize: "15px" }}>
             Health History & Medical Timeline
           </h3>
-          <button className="primary small" onClick={onOpenAddRecord}>
-            <Plus size={14} />
-            <span>Add Health Event</span>
-          </button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            {onOpenPassport && (
+              <button
+                type="button"
+                className="secondary small"
+                onClick={() => {
+                  onClose();
+                  onOpenPassport(animal);
+                }}
+              >
+                📜 Full Health Passport
+              </button>
+            )}
+            <button className="primary small" onClick={onOpenAddRecord}>
+              <Plus size={14} />
+              <span>Add Health Event</span>
+            </button>
+          </div>
         </div>
 
         {/* Timeline Events */}
