@@ -111,6 +111,63 @@ assert(initialAnimals.every(a => a.id && a.nameTag && a.species && a.village), "
 assert(initialHealthRecords.some(r => r.recordType === "vaccination" && r.title.includes("FMD")), "Vaccination history includes FMD records");
 assert(initialHealthRecords.some(r => r.animalId === "ANM-1001"), "Health records linked to animal ANM-1001 (Gauri)");
 
+// ----------------------------------------------------
+// FEATURE 1: Complete Multilingual Application Engine
+// ----------------------------------------------------
+console.log("\n--- Testing Feature 1: Multilingual Internationalization Engine ---");
+const { ALL_INDIAN_LANGUAGES, t, setLanguage, getLanguage, formatNumber, formatDate } = await import("./src/lib/i18n.js");
+
+assert(ALL_INDIAN_LANGUAGES.length >= 23, `Registered ${ALL_INDIAN_LANGUAGES.length} Indian languages (22 Scheduled + English)`);
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "hi" && l.native === "हिन्दी"), "Hindi registered with native script");
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "mr" && l.native === "मराठी"), "Marathi registered with native script");
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "bn" && l.native === "বাংলা"), "Bengali registered with native script");
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "te" && l.native === "తెలుగు"), "Telugu registered with native script");
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "ta" && l.native === "தமிழ்"), "Tamil registered with native script");
+assert(ALL_INDIAN_LANGUAGES.some(l => l.code === "gu" && l.native === "ગુજરાતી"), "Gujarati registered with native script");
+
+// Test English
+setLanguage("en");
+assert(t("appTitle") === "PASHU SHIELD", "English: 'PASHU SHIELD' title retrieved");
+assert(t("navDashboard") === "Dashboard", "English: 'Dashboard' nav label retrieved");
+
+// Test Hindi
+setLanguage("hi");
+assert(t("appTitle") === "पशु शील्ड", "Hindi: 'पशु शील्ड' title retrieved");
+assert(t("activeCases") === "सक्रिय मामले", "Hindi: 'सक्रिय मामले' active cases label retrieved");
+
+// Test Marathi
+setLanguage("mr");
+assert(t("appTitle") === "पशु शील्ड", "Marathi: 'पशु शील्ड' title retrieved");
+assert(t("navCases") === "प्राधान्य प्रकरणे", "Marathi: 'प्राधान्य प्रकरणे' cases label retrieved");
+
+// Reset to English
+setLanguage("en");
+
+// Test formatters
+assert(formatNumber(150000).includes("1,50,000") || formatNumber(150000).includes("150,000"), "Number formatted with locale separators");
+
+// ----------------------------------------------------
+// FEATURE 2: PASHU AI Assistant & Veterinary Safety
+// ----------------------------------------------------
+console.log("\n--- Testing Feature 2: PASHU AI Assistant & Safety Guardrails ---");
+const { detectEmergencySymptoms, generateLocalAiResponse } = await import("./src/lib/aiAssistant.js");
+
+// Emergency symptom detection
+assert(detectEmergencySymptoms("The cow is having sudden death and bleeding from mouth") === true, "English emergency: Detected sudden death / bleeding");
+assert(detectEmergencySymptoms("गाय के मुंह और नाक से खून बह रहा है और वह उठ नहीं पा रही") === true, "Hindi emergency: Detected acute hemorrhage & recumbency");
+assert(detectEmergencySymptoms("जनावराचे पोट खूप फुगले आहे आणि अचानक मृत्यू झाला") === true, "Marathi emergency: Detected severe bloat & sudden death");
+assert(detectEmergencySymptoms("Normal checkup routine inquiry") === false, "Routine query: Not falsely flagged as emergency");
+
+// Verified knowledge generation
+const tagHelp = generateLocalAiResponse("How do I register a cow with 12 digit yellow tag?", "en");
+assert(tagHelp.includes("12-digit") && tagHelp.includes("Animal Records"), "Grounded guidance: 12-digit tag registration steps explained");
+
+const fmdHelpHi = generateLocalAiResponse("खुरपका मुंहपका बीमारी के लक्षण", "hi");
+assert(fmdHelpHi.includes("खुरपका") || fmdHelpHi.includes("लार") || fmdHelpHi.includes("छाले") || fmdHelpHi.includes("परामर्श"), "Hindi clinical advisory: FMD symptoms accurately explained");
+
+const emergencyAlert = generateLocalAiResponse("Cow died suddenly with bleeding from nose", "en");
+assert(emergencyAlert.includes("EMERGENCY VETERINARY ALERT") && emergencyAlert.includes("Immediate Contact"), "Safety guardrail: Direct emergency vet escalation triggered");
+
 console.log(`\n========================================`);
 console.log(`TEST SUMMARY: ${passed}/${total} TESTS PASSED`);
 console.log(`========================================\n`);
@@ -120,3 +177,4 @@ if (passed === total) {
 } else {
   process.exit(1);
 }
+
